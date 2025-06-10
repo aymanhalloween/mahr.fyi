@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv01", "cv03", "cv04", "cv11";
+  }
+  
+  * {
+    border-color: theme('colors.stone.200');
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full bg-stone-900 text-white font-medium transition-all duration-150 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2 active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full bg-stone-100 text-stone-700 font-medium transition-all duration-150 hover:bg-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2 active:scale-95;
+  }
+  
+  .card {
+    @apply bg-white border border-stone-200 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md hover:border-stone-300;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 placeholder-stone-500 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-stone-900;
+  }
+  
+  .glass-effect {
+    @apply bg-white/90 backdrop-blur-sm border border-stone-200/50 shadow-lg;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+}
+
+/* Custom scrollbar - cleaner */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: theme('colors.stone.100');
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: theme('colors.stone.400');
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.stone.500');
+}
+
+/* Selection styling - more refined */
+::selection {
+  background: theme('colors.stone.200');
+  color: theme('colors.stone.900');
+}
+
+/* Focus visible for accessibility */
+.focus-visible {
+  outline: 2px solid theme('colors.stone.900');
+  outline-offset: 2px;
+} 
