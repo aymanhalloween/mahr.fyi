@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Supabase environment variables not found. Some features may not work.')
+}
+
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
 
 // Database types
 export interface SubmissionData {
@@ -30,6 +36,10 @@ export interface SubmissionData {
 // Helper function to submit form data
 export async function submitMahrData(data: Omit<SubmissionData, 'id' | 'created_at' | 'updated_at'>) {
   try {
+    if (!supabase) {
+      throw new Error('Supabase client is not initialized. Please check your environment variables.')
+    }
+
     // Extract country code from location (basic implementation)
     const countryCode = extractCountryCode(data.location)
     const region = getRegionFromLocation(data.location)
@@ -126,6 +136,10 @@ function getRegionFromLocation(location: string): string | null {
 // Function to get analytics data
 export async function getAnalyticsData() {
   try {
+    if (!supabase) {
+      throw new Error('Supabase client is not initialized. Please check your environment variables.')
+    }
+
     const { data, error } = await supabase
       .from('submission_analytics')
       .select('*')

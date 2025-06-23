@@ -31,6 +31,12 @@ const StatsSection = () => {
     try {
       setLoading(true)
       
+      if (!supabase) {
+        console.warn('Supabase client not available, skipping stats fetch')
+        setStats(null)
+        return
+      }
+      
       // Get total submissions
       const { count: totalSubmissions } = await supabase
         .from('submissions')
