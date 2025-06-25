@@ -131,7 +131,6 @@ const SubmissionForm = () => {
       input = COUNTRY_ABBREVIATIONS[abbrKey]
       updateFormData('location', input)
     }
-    
     try {
       const norm = await normalizeLocation(input)
       if (!norm.canonical) {
@@ -141,26 +140,35 @@ const SubmissionForm = () => {
         alert('Please enter a valid country from the list.')
         return
       }
-      
-      // Transform data for Supabase
-      const submissionData = {
+      // Sanitize payload: convert empty strings to null
+      const sanitize = (val: any) => (val === '' ? null : val)
+      // Build submissionData based on asset type
+      let submissionData: any = {
         asset_type: formData.asset_type,
-        cash_amount: formData.asset_type === 'cash' ? parseFloat(formData.cash_amount) || null : null,
-        cash_currency: formData.asset_type === 'cash' ? formData.cash_currency : null,
-        asset_description: formData.asset_type !== 'cash' ? formData.asset_description : null,
-        estimated_value: formData.asset_type !== 'cash' ? parseFloat(formData.estimated_value) || null : null,
-        estimated_value_currency: formData.asset_type !== 'cash' ? formData.estimated_value_currency : null,
-        location: norm.canonical, // Use the normalized location
-        cultural_background: formData.cultural_background || null,
-        profession: formData.profession || null,
-        marriage_year: parseInt(formData.marriage_year) || null,
-        story: formData.story || null,
-        family_pressure_level: parseInt(formData.family_pressure_level) || null,
+        location: norm.canonical,
+        cultural_background: sanitize(formData.cultural_background),
+        profession: sanitize(formData.profession),
+        marriage_year: formData.marriage_year ? parseInt(formData.marriage_year) : null,
+        story: sanitize(formData.story),
+        family_pressure_level: formData.family_pressure_level ? parseInt(formData.family_pressure_level) : null,
         negotiated: formData.negotiated
       }
-      
+      if (formData.asset_type === 'cash') {
+        submissionData.cash_amount = formData.cash_amount ? parseFloat(formData.cash_amount) : null
+        submissionData.cash_currency = sanitize(formData.cash_currency)
+        submissionData.asset_description = null
+        submissionData.estimated_value = null
+        submissionData.estimated_value_currency = null
+      } else {
+        submissionData.cash_amount = null
+        submissionData.cash_currency = null
+        submissionData.asset_description = sanitize(formData.asset_description)
+        submissionData.estimated_value = formData.estimated_value ? parseFloat(formData.estimated_value) : null
+        submissionData.estimated_value_currency = sanitize(formData.estimated_value_currency)
+      }
+      // Debug: log payload
+      console.log('Submitting to Supabase:', submissionData)
       const result = await submitMahrData(submissionData)
-      
       if (result.success) {
         setSubmitStatus('success')
         // Reset form after success

@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { DollarSign, Zap, TrendingUp, TrendingDown, Loader2, Brain, Sparkles, ArrowRight, Users, BarChart3, MapPin, Globe, CheckCircle, XCircle } from 'lucide-react'
+import { DollarSign, Zap, TrendingUp, TrendingDown, Loader2, Brain, Sparkles, ArrowRight, Users, BarChart3, MapPin, Globe } from 'lucide-react'
 import { submitMahrData, supabase } from '../../lib/supabase'
-import { normalizeLocation, COUNTRIES } from '../../lib/locationNormalizer'
+import { normalizeLocation } from '../../lib/locationNormalizer'
 
 export default function ComparePage() {
   const [step, setStep] = useState<'form' | 'loading' | 'result'>('form')
@@ -25,79 +25,11 @@ export default function ComparePage() {
   const [loading, setLoading] = useState(false)
   const [globalMedian, setGlobalMedian] = useState(0)
 
-  // Country validation states
-  const [countrySuggestions, setCountrySuggestions] = useState<string[]>([])
-  const [countryValid, setCountryValid] = useState<boolean | null>(null)
-  const [countryTouched, setCountryTouched] = useState(false)
-
   const currencies = ['USD', 'AED', 'SAR', 'PKR', 'INR', 'GBP', 'EUR', 'CAD', 'AUD']
-
-  // Country abbreviations mapping
-  const COUNTRY_ABBREVIATIONS: Record<string, string> = {
-    'usa': 'United States',
-    'us': 'United States',
-    'america': 'United States',
-    'u.s.': 'United States',
-    'u.s.a.': 'United States',
-    'uk': 'United Kingdom',
-    'u.k.': 'United Kingdom',
-    'england': 'United Kingdom',
-    'uae': 'United Arab Emirates',
-    'emirates': 'United Arab Emirates',
-    'ksa': 'Saudi Arabia',
-    'saudi': 'Saudi Arabia',
-  }
-
-  const handleCountryInput = (value: string) => {
-    setFormData({...formData, location: value})
-    setCountryTouched(true)
-    if (!value) {
-      setCountrySuggestions([])
-      setCountryValid(null)
-      return
-    }
-    // Check for abbreviation match
-    const abbrKey = value.trim().toLowerCase()
-    let canonical = COUNTRY_ABBREVIATIONS[abbrKey]
-    let suggestions: string[] = []
-    if (canonical) {
-      suggestions = [canonical]
-    } else {
-      suggestions = COUNTRIES.filter(c => c.toLowerCase().includes(value.toLowerCase())).slice(0, 6)
-    }
-    setCountrySuggestions(suggestions)
-    // Live validation: is it an exact match or abbreviation?
-    setCountryValid(
-      COUNTRIES.map(c => c.toLowerCase()).includes(value.toLowerCase()) ||
-      !!COUNTRY_ABBREVIATIONS[abbrKey]
-    )
-  }
-
-  const handleCountrySuggestionClick = (country: string) => {
-    setFormData({...formData, location: country})
-    setCountrySuggestions([])
-    setCountryValid(true)
-    setCountryTouched(true)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.amount || !formData.location) return
-
-    // Validate country before proceeding
-    setCountryTouched(true)
-    let input = formData.location || ''
-    const abbrKey = input.trim().toLowerCase()
-    if (COUNTRY_ABBREVIATIONS[abbrKey]) {
-      input = COUNTRY_ABBREVIATIONS[abbrKey]
-      setFormData({...formData, location: input})
-    }
-    const norm = await normalizeLocation(input)
-    if (!norm.canonical) {
-      setCountryValid(false)
-      alert('Please enter a valid country from the list.')
-      return
-    }
 
     setStep('loading')
     setLoading(true)
@@ -126,6 +58,7 @@ export default function ComparePage() {
       await new Promise(resolve => setTimeout(resolve, 2000))
 
       // Normalize location to canonical country
+      const norm = await normalizeLocation(formData.location)
       const canonicalCountry = norm.canonical
       if (!canonicalCountry) throw new Error('Invalid country')
 
@@ -227,9 +160,6 @@ export default function ComparePage() {
     setStep('form')
     setFormData({ amount: '', currency: 'USD', location: '', cultural_background: '', marriage_year: '' })
     setResult(null)
-    setCountryValid(null)
-    setCountryTouched(false)
-    setCountrySuggestions([])
   }
 
   const goToMainSite = () => {
@@ -347,40 +277,16 @@ export default function ComparePage() {
                   <label className="block text-sm font-medium text-stone-700 mb-2">
                     📍 Country Only
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Start typing your country..."
-                      className="w-full px-4 py-3 pr-12 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      value={formData.location}
-                      onChange={(e) => handleCountryInput(e.target.value)}
-                      onBlur={() => setTimeout(() => setCountrySuggestions([]), 200)}
-                      onFocus={() => formData.location && setCountrySuggestions(COUNTRIES.filter(c => c.toLowerCase().includes(formData.location.toLowerCase())).slice(0, 6))}
-                      autoComplete="off"
-                      required
-                    />
-                    {countryTouched && countryValid === true && (
-                      <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 w-5 h-5" />
-                    )}
-                    {countryTouched && countryValid === false && (
-                      <XCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 w-5 h-5" />
-                    )}
-                    {countrySuggestions.length > 0 && (
-                      <div className="absolute z-10 bg-white border border-stone-200 rounded-lg shadow-lg w-full mt-1 max-h-40 overflow-auto">
-                        {countrySuggestions.map((country, idx) => (
-                          <div
-                            key={country}
-                            className="px-4 py-2 hover:bg-purple-50 cursor-pointer text-sm border-b border-stone-100 last:border-b-0"
-                            onMouseDown={() => handleCountrySuggestionClick(country)}
-                          >
-                            {country}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <input
+                    type="text"
+                    placeholder="e.g., United States, Pakistan, UAE (country names only)"
+                    className="w-full px-4 py-3 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    required
+                  />
                   <p className="text-xs text-stone-500 mt-1">
-                    Type your country name or abbreviation (e.g., USA, UK, UAE)
+                    Please enter only country names (no cities or regions)
                   </p>
                 </motion.div>
 

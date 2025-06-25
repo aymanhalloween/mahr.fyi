@@ -81,8 +81,6 @@ export async function submitMahrData(data: Omit<SubmissionData, 'id' | 'created_
       .insert([{
         ...data,
         location: norm.canonical,
-        canonical_location: norm.canonical,
-        latlng: norm.latlng,
         country_code: countryCode,
         region: region
       }])
