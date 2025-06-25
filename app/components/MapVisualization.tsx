@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase'
 import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import { normalizeLocation, COUNTRY_COORDINATES } from '../../lib/locationNormalizer'
+import { createPortal } from 'react-dom'
 
 function getLatLng(location: string): [number, number] {
   return COUNTRY_COORDINATES[location] || [20, 0] // fallback: center of world
@@ -20,7 +21,21 @@ interface GroupData {
   location: string
   count: number
   avgAmount: number
+  medianAmount: number
+  standardDeviation: number
+  percentiles: {
+    p25: number
+    p50: number
+    p75: number
+    p90: number
+    p95: number
+  }
   commonType: string
+  yearlyTrends: Array<{
+    year: number
+    median: number
+    count: number
+  }>
   latlng: [number, number]
 }
 
@@ -83,10 +98,116 @@ function createConcentricIcon() {
   })
 }
 
+function CountryModal({ show, onClose, country }: { show: boolean, onClose: () => void, country: GroupData | null }) {
+  if (!show || !country) return null
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50">
+      <motion.div 
+        className="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-stone-900 mb-2">{country.location}</h2>
+            <p className="text-stone-600">Detailed mahr statistics and trends</p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-8 h-8 bg-stone-100 rounded-full flex items-center justify-center hover:bg-stone-200 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+        {/* Key Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="text-center p-4 bg-stone-50 rounded-xl">
+            <div className="text-sm text-stone-600 mb-1">Submissions</div>
+            <div className="text-2xl font-bold text-stone-900">{country.count}</div>
+          </div>
+          <div className="text-center p-4 bg-stone-50 rounded-xl">
+            <div className="text-sm text-stone-600 mb-1">Median</div>
+            <div className="text-xl font-bold text-stone-900">{formatCurrency(country.medianAmount)}</div>
+          </div>
+          <div className="text-center p-4 bg-stone-50 rounded-xl">
+            <div className="text-sm text-stone-600 mb-1">Average</div>
+            <div className="text-xl font-bold text-stone-900">{formatCurrency(country.avgAmount)}</div>
+          </div>
+          <div className="text-center p-4 bg-stone-50 rounded-xl">
+            <div className="text-sm text-stone-600 mb-1">Common Type</div>
+            <div className="text-sm font-semibold text-stone-900 capitalize">{country.commonType}</div>
+          </div>
+        </div>
+        {/* Percentile Distribution */}
+        <div className="mb-8">
+          <h3 className="text-lg font-bold text-stone-900 mb-4">Distribution Percentiles</h3>
+          <div className="grid grid-cols-5 gap-3">
+            {[
+              { label: '25th', value: country.percentiles.p25, desc: 'Bottom quarter' },
+              { label: '50th', value: country.percentiles.p50, desc: 'Median' },
+              { label: '75th', value: country.percentiles.p75, desc: 'Top quarter' },
+              { label: '90th', value: country.percentiles.p90, desc: 'Top 10%' },
+              { label: '95th', value: country.percentiles.p95, desc: 'Top 5%' }
+            ].map((percentile, index) => (
+              <div key={index} className="text-center p-3 bg-stone-50 rounded-lg">
+                <div className="text-xs text-stone-600 mb-1">{percentile.label}</div>
+                <div className="text-sm font-bold text-stone-900">
+                  {formatCurrency(percentile.value)}
+                </div>
+                <div className="text-xs text-stone-500 mt-1">{percentile.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Yearly Trends */}
+        {country.yearlyTrends.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-stone-900 mb-4">Yearly Trends</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {country.yearlyTrends.slice(0, 6).map((trend, index) => (
+                <div key={index} className="p-3 bg-stone-50 rounded-lg">
+                  <div className="font-semibold text-stone-900">{trend.year}</div>
+                  <div className="text-sm text-stone-600">
+                    Median: {formatCurrency(trend.median)}
+                  </div>
+                  <div className="text-xs text-stone-500">{trend.count} submissions</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Statistical Metrics */}
+        <div className="bg-stone-50 rounded-xl p-4">
+          <h4 className="font-semibold text-stone-900 mb-2">Statistical Metrics</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-stone-600">Standard Deviation:</span>
+              <span className="font-semibold text-stone-900 ml-2">
+                {formatCurrency(country.standardDeviation)}
+              </span>
+            </div>
+            <div>
+              <span className="text-stone-600">Range:</span>
+              <span className="font-semibold text-stone-900 ml-2">
+                {formatCurrency(country.percentiles.p25)} - {formatCurrency(country.percentiles.p95)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>,
+    document.body
+  )
+}
+
 const MapVisualization = () => {
   const [groups, setGroups] = useState<GroupData[]>([])
   const [stats, setStats] = useState({countries: 0, submissions: 0, globalMedian: 0})
   const [loading, setLoading] = useState(true)
+  const [selectedCountry, setSelectedCountry] = useState<GroupData | null>(null)
+  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -126,18 +247,71 @@ const MapVisualization = () => {
 
         // Aggregate for each group
         const groupData: GroupData[] = Object.entries(locationGroups).map(([loc, subs]) => {
-          const avg = subs.reduce((sum: number, s: any) => sum + (s.cash_amount || 0), 0) / subs.length
+          const values = subs.map((s: any) => s.cash_amount || s.estimated_value || 0).filter(v => v > 0).sort((a, b) => a - b)
+          const avg = values.length > 0 ? values.reduce((sum: number, v: number) => sum + v, 0) / values.length : 0
+          const median = values.length > 0 ? 
+            (values.length % 2 === 0 
+              ? (values[values.length / 2 - 1] + values[values.length / 2]) / 2
+              : values[Math.floor(values.length / 2)]) : 0
+          
+          // Calculate standard deviation
+          const variance = values.length > 0 ? 
+            values.reduce((acc: number, val: number) => acc + Math.pow(val - avg, 2), 0) / values.length : 0
+          const standardDeviation = Math.sqrt(variance)
+
+          // Calculate percentiles
+          const percentiles = {
+            p25: values.length > 0 ? values[Math.floor(values.length * 0.25)] || 0 : 0,
+            p50: median,
+            p75: values.length > 0 ? values[Math.floor(values.length * 0.75)] || 0 : 0,
+            p90: values.length > 0 ? values[Math.floor(values.length * 0.9)] || 0 : 0,
+            p95: values.length > 0 ? values[Math.floor(values.length * 0.95)] || 0 : 0
+          }
+
+          // Get yearly trends for this location
+          const yearlyGroups = subs.reduce((acc: any, s: any) => {
+            const year = s.marriage_year
+            if (!year || year < 2010) return acc
+            if (!acc[year]) acc[year] = []
+            const value = s.cash_amount || s.estimated_value
+            if (value && value > 0) acc[year].push(value)
+            return acc
+          }, {} as Record<number, number[]>)
+
+          const yearlyTrends = Object.entries(yearlyGroups).map(([year, yearValues]: [string, any]) => {
+            const sortedYearValues = [...yearValues].sort((a: number, b: number) => a - b)
+            const yearMedian = sortedYearValues.length % 2 === 0 
+              ? (sortedYearValues[sortedYearValues.length / 2 - 1] + sortedYearValues[sortedYearValues.length / 2]) / 2
+              : sortedYearValues[Math.floor(sortedYearValues.length / 2)]
+            return {
+              year: parseInt(year),
+              median: Math.round(yearMedian),
+              count: yearValues.length
+            }
+          }).sort((a, b) => b.year - a.year)
+
           const typeCounts: Record<string, number> = {}
           subs.forEach((s: any) => {
             const type = s.asset_type || 'Unknown'
             typeCounts[type] = (typeCounts[type] || 0) + 1
           })
           const mostCommonType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown'
+          
           return {
             location: loc,
             count: subs.length,
-            avgAmount: avg,
+            avgAmount: Math.round(avg),
+            medianAmount: Math.round(median),
+            standardDeviation: Math.round(standardDeviation),
+            percentiles: {
+              p25: Math.round(percentiles.p25),
+              p50: Math.round(percentiles.p50),
+              p75: Math.round(percentiles.p75),
+              p90: Math.round(percentiles.p90),
+              p95: Math.round(percentiles.p95)
+            },
             commonType: mostCommonType,
+            yearlyTrends,
             latlng: subs[0].latlng || [20, 0],
           }
         })
@@ -199,49 +373,61 @@ const MapVisualization = () => {
         <div className="relative h-80">
           <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-              attribution="&copy; <a href='https://carto.com/attributions'>CARTO</a> | &copy; OpenStreetMap contributors"
+              url="https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
             {groups.map((group, idx) => (
-              <Marker key={idx} position={group.latlng} icon={createConcentricIcon()}>
-                <Tooltip direction="top" offset={[0, -20]} opacity={1} permanent={false} interactive>
-                  <div style={{ minWidth: 180 }}>
-                    <div className="font-semibold text-base mb-1">{group.location}</div>
-                    <div className="text-sm">Submissions: <b>{group.count}</b></div>
-                    <div className="text-sm">Avg. Amount: <b>{formatCurrency(group.avgAmount)}</b></div>
-                    <div className="text-sm">Common Type: <b>{group.commonType}</b></div>
+              <Marker 
+                key={idx} 
+                position={group.latlng} 
+                icon={createConcentricIcon()}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedCountry(group)
+                    setShowModal(true)
+                  }
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>
+                  <div className="text-sm">
+                    <div className="font-semibold text-stone-900 mb-1">{group.location}</div>
+                    <div className="text-stone-600 space-y-1">
+                      <div>Median: {formatCurrency(group.medianAmount)}</div>
+                      <div>Average: {formatCurrency(group.avgAmount)}</div>
+                      <div>Count: {group.count}</div>
+                      <div className="text-xs text-stone-500 mt-1">Click for details</div>
+                    </div>
                   </div>
                 </Tooltip>
               </Marker>
             ))}
           </MapContainer>
         </div>
+
+        {/* Enhanced Stats Summary */}
+        <div className="p-6 border-t border-stone-200">
+          <div className="grid grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-stone-900">{stats.countries}</div>
+              <div className="text-sm text-stone-600">Countries</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-stone-900">{stats.submissions.toLocaleString()}</div>
+              <div className="text-sm text-stone-600">Total Submissions</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-stone-900">{formatCurrency(stats.globalMedian)}</div>
+              <div className="text-sm text-stone-600">Global Median</div>
+            </div>
+          </div>
+          <div className="mt-4 text-center">
+            <p className="text-xs text-stone-500">Click any marker for detailed country statistics</p>
+          </div>
+        </div>
       </motion.div>
 
-      {/* Summary Stats */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-        viewport={{ once: true }}
-      >
-        <div className="card p-6 text-center">
-          <div className="text-2xl mb-2">🌍</div>
-          <div className="text-2xl font-bold text-stone-900 mb-1">{stats.countries}</div>
-          <div className="text-sm text-stone-600">Countries</div>
-        </div>
-        <div className="card p-6 text-center">
-          <div className="text-2xl mb-2">📊</div>
-          <div className="text-2xl font-bold text-stone-900 mb-1">{stats.submissions}</div>
-          <div className="text-sm text-stone-600">Global Submissions</div>
-        </div>
-        <div className="card p-6 text-center">
-          <div className="text-2xl mb-2">💰</div>
-          <div className="text-2xl font-bold text-stone-900 mb-1">{formatCurrency(stats.globalMedian)}</div>
-          <div className="text-sm text-stone-600">Global Median</div>
-        </div>
-      </motion.div>
+      {/* Country Detail Modal */}
+      <CountryModal show={showModal} onClose={() => setShowModal(false)} country={selectedCountry} />
     </div>
   )
 }

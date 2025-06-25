@@ -19,7 +19,6 @@ import SubmissionForm from './components/SubmissionForm'
 import StatsSection from './components/StatsSection'
 import dynamic from 'next/dynamic'
 import EducationalSection from './components/EducationalSection'
-import CommunityReflections from './components/CommunityReflections'
 
 // Fast, precise animations
 const fadeInUp = {
@@ -64,29 +63,16 @@ export default function HomePage() {
       {/* Hero Section */}
       <HeroSection />
 
-      {/* Stats Overview */}
+      {/* Summary Stats Bar */}
       <motion.section 
-        className="py-16 px-6"
+        className="py-8 px-6"
         variants={staggerContainer}
         initial="initial"
         whileInView="animate"
         viewport={{ once: true, margin: "-50px" }}
       >
         <div className="max-w-7xl mx-auto">
-          <StatsSection />
-        </div>
-      </motion.section>
-
-      {/* Submission Form */}
-      <motion.section 
-        className="py-16 px-6 bg-stone-50/50"
-        {...fadeInUp}
-        initial="initial"
-        whileInView="animate"
-        viewport={{ once: true, margin: "-50px" }}
-      >
-        <div className="max-w-4xl mx-auto">
-          <SubmissionForm />
+          <StatsSection summaryOnly />
         </div>
       </motion.section>
 
@@ -103,6 +89,19 @@ export default function HomePage() {
         </div>
       </motion.section>
 
+      {/* Submission Form */}
+      <motion.section 
+        className="py-16 px-6 bg-stone-50/50"
+        {...fadeInUp}
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true, margin: "-50px" }}
+      >
+        <div className="max-w-4xl mx-auto">
+          <SubmissionForm />
+        </div>
+      </motion.section>
+
       {/* Educational Content */}
       <motion.section 
         className="py-16 px-6 bg-stone-50/50"
@@ -116,18 +115,7 @@ export default function HomePage() {
         </div>
       </motion.section>
 
-      {/* Community Reflections */}
-      <motion.section 
-        className="py-16 px-6"
-        {...fadeInUp}
-        initial="initial"
-        whileInView="animate"
-        viewport={{ once: true, margin: "-50px" }}
-      >
-        <div className="max-w-6xl mx-auto">
-          <CommunityReflections />
-        </div>
-      </motion.section>
+
 
       {/* Footer */}
       <motion.footer 

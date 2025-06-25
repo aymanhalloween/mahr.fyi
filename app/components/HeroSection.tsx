@@ -3,6 +3,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, Shield, Users, BarChart3 } from 'lucide-react'
+import Link from 'next/link'
 
 const HeroSection = () => {
   return (
@@ -95,16 +96,20 @@ const HeroSection = () => {
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
           </motion.button>
           
-          <motion.button 
+          <Link 
+            href="/insights"
             className="inline-flex items-center gap-2 px-6 py-3 text-stone-700 bg-stone-100 rounded-full font-medium hover:bg-stone-200 transition-colors duration-200"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            onClick={() => document.getElementById('insights-section')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            <BarChart3 className="w-4 h-4" />
-            <span>View Insights</span>
-          </motion.button>
+            <motion.div
+              className="flex items-center gap-2"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>View Insights</span>
+            </motion.div>
+          </Link>
 
           {/* New Compare Your Mahr button */}
           <motion.a
@@ -143,7 +148,7 @@ const HeroSection = () => {
             </div>
             <div>
               <div className="text-sm font-medium text-stone-900">Community</div>
-              <div className="text-xs text-stone-600">2,847 submissions</div>
+              <div className="text-xs text-stone-600">Building trust</div>
             </div>
           </div>
           

@@ -3,32 +3,8 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DollarSign, Zap, TrendingUp, TrendingDown, Loader2, Brain, Sparkles, ArrowRight, Users, BarChart3, MapPin, Globe } from 'lucide-react'
-import { submitMahrData } from '../../lib/supabase'
-
-// Mock country averages data - you can replace this with real data from your API
-const COUNTRY_AVERAGES: { [key: string]: number } = {
-  'AE': 45000, // UAE
-  'SA': 35000, // Saudi Arabia
-  'US': 25000, // USA
-  'CA': 22000, // Canada
-  'GB': 20000, // UK
-  'AU': 28000, // Australia
-  'PK': 5000,  // Pakistan
-  'IN': 4000,  // India
-  'BD': 3000,  // Bangladesh
-  'QA': 50000, // Qatar
-  'KW': 40000, // Kuwait
-  'BH': 35000, // Bahrain
-  'OM': 30000, // Oman
-  'MY': 15000, // Malaysia
-  'ID': 8000,  // Indonesia
-  'TR': 12000, // Turkey
-  'EG': 6000,  // Egypt
-  'LB': 18000, // Lebanon
-  'JO': 15000, // Jordan
-}
-
-const DEFAULT_AVERAGE = 20000
+import { submitMahrData, supabase } from '../../lib/supabase'
+import { normalizeLocation } from '../../lib/locationNormalizer'
 
 export default function ComparePage() {
   const [step, setStep] = useState<'form' | 'loading' | 'result'>('form')
@@ -47,6 +23,7 @@ export default function ComparePage() {
     location: ''
   })
   const [loading, setLoading] = useState(false)
+  const [globalMedian, setGlobalMedian] = useState(0)
 
   const currencies = ['USD', 'AED', 'SAR', 'PKR', 'INR', 'GBP', 'EUR', 'CAD', 'AUD']
 
@@ -73,15 +50,51 @@ export default function ComparePage() {
       // Simulate AI processing with minimum 2 second delay
       await new Promise(resolve => setTimeout(resolve, 2000))
 
-      // Calculate comparison
-      const countryCode = extractCountryCode(formData.location)
-      const countryAverage = COUNTRY_AVERAGES[countryCode || ''] || DEFAULT_AVERAGE
-      const userAmount = parseFloat(formData.amount)
+      // Normalize location to canonical country
+      const norm = await normalizeLocation(formData.location)
+      const canonicalCountry = norm.canonical
+      if (!canonicalCountry) throw new Error('Invalid country')
+
+      if (!supabase) throw new Error('Supabase client not initialized')
+
+      // Fetch all submissions for this country
+      const { data: countrySubs, error: countryError } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('location', canonicalCountry)
+      if (countryError) throw countryError
+
+      // Calculate country median (cash_amount or estimated_value) instead of average
+      const values = (countrySubs || [])
+        .map(s => s.asset_type === 'cash' ? s.cash_amount : s.estimated_value)
+        .filter(v => v && v > 0)
+        .sort((a, b) => a - b)
       
+      const countryMedian = values.length > 0 ? 
+        values.length % 2 === 0 
+          ? (values[values.length / 2 - 1] + values[values.length / 2]) / 2
+          : values[Math.floor(values.length / 2)]
+        : 0
+
+      // Fetch all submissions for global median
+      const { data: allSubs, error: allError } = await supabase
+        .from('submissions')
+        .select('*')
+      if (allError) throw allError
+      const allValues = (allSubs || [])
+        .map(s => s.asset_type === 'cash' ? s.cash_amount : s.estimated_value)
+        .filter(v => v && v > 0)
+        .sort((a, b) => a - b)
+      const globalMedian = allValues.length > 0 ? 
+        allValues.length % 2 === 0 
+          ? (allValues[allValues.length / 2 - 1] + allValues[allValues.length / 2]) / 2
+          : allValues[Math.floor(allValues.length / 2)]
+        : 0
+
       // Convert to USD for comparison if needed
+      const userAmount = parseFloat(formData.amount)
       let normalizedAmount = userAmount
       if (formData.currency !== 'USD') {
-        // Simple conversion rates - you can use a real API for this
         const conversionRates: { [key: string]: number } = {
           'AED': 0.27, 'SAR': 0.27, 'PKR': 0.0036, 'INR': 0.012,
           'GBP': 1.27, 'EUR': 1.1, 'CAD': 0.74, 'AUD': 0.66
@@ -89,14 +102,14 @@ export default function ComparePage() {
         normalizedAmount = userAmount * (conversionRates[formData.currency] || 1)
       }
 
-      const percentageOfAverage = (normalizedAmount / countryAverage) * 100
-      const lowerBound = 70 // 30% below average
-      const upperBound = 130 // 30% above average
+      const percentageOfMedian = countryMedian > 0 ? (normalizedAmount / countryMedian) * 100 : 0
+      const lowerBound = 70 // 30% below median
+      const upperBound = 130 // 30% above median
 
       let resultType: 'below' | 'above' | 'within'
-      if (percentageOfAverage < lowerBound) {
+      if (percentageOfMedian < lowerBound) {
         resultType = 'below'
-      } else if (percentageOfAverage > upperBound) {
+      } else if (percentageOfMedian > upperBound) {
         resultType = 'above'
       } else {
         resultType = 'within'
@@ -104,15 +117,15 @@ export default function ComparePage() {
 
       setComparisonData({
         userAmount: normalizedAmount,
-        averageAmount: countryAverage,
-        percentage: percentageOfAverage,
-        location: formData.location
+        averageAmount: countryMedian,
+        percentage: percentageOfMedian,
+        location: canonicalCountry
       })
       setResult(resultType)
-      
+      setGlobalMedian(globalMedian)
     } catch (error) {
       console.error('Error:', error)
-      setResult('within') // Default to within range if error
+      setResult('within')
     } finally {
       setLoading(false)
       setStep('result')
@@ -299,7 +312,7 @@ export default function ComparePage() {
                     type="number"
                     placeholder="e.g., 2023"
                     min="1950"
-                    max="2024"
+                    max={new Date().getFullYear() + 1}
                     className="w-full px-4 py-3 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     value={formData.marriage_year}
                     onChange={(e) => setFormData({...formData, marriage_year: e.target.value})}
@@ -455,10 +468,10 @@ export default function ComparePage() {
                 </div>
                 <div className="mt-3 pt-3 border-t border-white/20">
                   <div className="opacity-75 text-sm">Global Median</div>
-                  <div className="font-semibold text-lg">USD {Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(DEFAULT_AVERAGE)}</div>
+                  <div className="font-semibold text-lg">USD {Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(globalMedian)}</div>
                 </div>
                 <div className="mt-3">
-                  <div className="opacity-75 text-sm">Percentage of Average</div>
+                  <div className="opacity-75 text-sm">Percentage of Median</div>
                   <div className="font-semibold text-lg">{comparisonData.percentage.toFixed(0)}%</div>
                 </div>
               </motion.div>

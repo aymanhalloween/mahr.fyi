@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, DollarSign, MapPin, User, Calendar, Shield, TrendingUp, Home, CheckCircle, AlertCircle } from 'lucide-react'
+import { Send, DollarSign, MapPin, User, Calendar, Shield, TrendingUp, Home, CheckCircle, AlertCircle, XCircle } from 'lucide-react'
 import { submitMahrData } from '../../lib/supabase'
+import { COUNTRIES } from '../../lib/locationNormalizer'
+import { normalizeLocation } from '../../lib/locationNormalizer'
 
 const SubmissionForm = () => {
   const [currentStep, setCurrentStep] = useState(0)
@@ -30,6 +32,10 @@ const SubmissionForm = () => {
     negotiated: false
   })
 
+  const [countrySuggestions, setCountrySuggestions] = useState<string[]>([])
+  const [countryValid, setCountryValid] = useState<boolean | null>(null)
+  const [countryTouched, setCountryTouched] = useState(false)
+
   const steps = [
     { title: 'Asset Type', fields: ['asset_type'] },
     { title: 'Asset Details', fields: ['amount_details'] },
@@ -51,6 +57,23 @@ const SubmissionForm = () => {
 
   const currencies = ['USD', 'AED', 'SAR', 'PKR', 'INR', 'GBP', 'EUR', 'CAD', 'AUD']
 
+  // Add a mapping for common abbreviations to canonical country names
+  const COUNTRY_ABBREVIATIONS: Record<string, string> = {
+    'usa': 'United States',
+    'us': 'United States',
+    'america': 'United States',
+    'u.s.': 'United States',
+    'u.s.a.': 'United States',
+    'uk': 'United Kingdom',
+    'u.k.': 'United Kingdom',
+    'england': 'United Kingdom',
+    'uae': 'United Arab Emirates',
+    'emirates': 'United Arab Emirates',
+    'ksa': 'Saudi Arabia',
+    'saudi': 'Saudi Arabia',
+    // Add more as needed
+  }
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
@@ -63,10 +86,58 @@ const SubmissionForm = () => {
     }
   }
 
+  const handleCountryInput = (value: string) => {
+    updateFormData('location', value)
+    setCountryTouched(true)
+    if (!value) {
+      setCountrySuggestions([])
+      setCountryValid(null)
+      return
+    }
+    // Check for abbreviation match
+    const abbrKey = value.trim().toLowerCase()
+    let canonical = COUNTRY_ABBREVIATIONS[abbrKey]
+    let suggestions: string[] = []
+    if (canonical) {
+      suggestions = [canonical]
+    } else {
+      suggestions = COUNTRIES.filter(c => c.toLowerCase().includes(value.toLowerCase())).slice(0, 6)
+    }
+    setCountrySuggestions(suggestions)
+    // Live validation: is it an exact match or abbreviation?
+    setCountryValid(
+      COUNTRIES.map(c => c.toLowerCase()).includes(value.toLowerCase()) ||
+      !!COUNTRY_ABBREVIATIONS[abbrKey]
+    )
+  }
+
+  const handleCountrySuggestionClick = (country: string) => {
+    updateFormData('location', country)
+    setCountrySuggestions([])
+    setCountryValid(true)
+    setCountryTouched(true)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitStatus('idle')
+    setCountryTouched(true)
+    // Fuzzy validation with abbreviation support
+    let input = formData.location || ''
+    const abbrKey = input.trim().toLowerCase()
+    if (COUNTRY_ABBREVIATIONS[abbrKey]) {
+      input = COUNTRY_ABBREVIATIONS[abbrKey]
+      updateFormData('location', input)
+    }
+    const norm = await normalizeLocation(input)
+    if (!norm.canonical) {
+      setCountryValid(false)
+      setIsSubmitting(false)
+      setSubmitStatus('error')
+      alert('Please enter a valid country from the list.')
+      return
+    }
     
     try {
       // Transform data for Supabase
@@ -309,17 +380,41 @@ const SubmissionForm = () => {
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-2">
                     <MapPin className="inline w-4 h-4 mr-1" />
-                    Country Only
+                    Country
                   </label>
-                  <input 
-                    type="text"
-                    placeholder="e.g., United States, Pakistan, UAE (country names only)"
-                    className="input-field"
-                    value={formData.location}
-                    onChange={(e) => updateFormData('location', e.target.value)}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="input-field pr-10"
+                      placeholder="Start typing your country..."
+                      value={formData.location}
+                      onChange={e => handleCountryInput(e.target.value)}
+                      onBlur={() => setTimeout(() => setCountrySuggestions([]), 200)}
+                      onFocus={() => formData.location && setCountrySuggestions(COUNTRIES.filter(c => c.toLowerCase().includes(formData.location.toLowerCase())).slice(0, 6))}
+                      autoComplete="off"
+                    />
+                    {countryTouched && countryValid === true && (
+                      <CheckCircle className="absolute right-2 top-2 text-green-500 w-5 h-5" />
+                    )}
+                    {countryTouched && countryValid === false && (
+                      <XCircle className="absolute right-2 top-2 text-red-500 w-5 h-5" />
+                    )}
+                    {countrySuggestions.length > 0 && (
+                      <div className="absolute z-10 bg-white border border-stone-200 rounded shadow w-full mt-1 max-h-40 overflow-auto">
+                        {countrySuggestions.map((country, idx) => (
+                          <div
+                            key={country}
+                            className="px-4 py-2 hover:bg-stone-100 cursor-pointer text-sm"
+                            onMouseDown={() => handleCountrySuggestionClick(country)}
+                          >
+                            {country}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <p className="text-xs text-stone-500 mt-1">
-                    Please enter only country names (no cities or regions)
+                    Please enter your country (no cities or regions)
                   </p>
                 </div>
                 <div>
