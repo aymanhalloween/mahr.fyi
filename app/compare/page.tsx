@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { DollarSign, Zap, TrendingUp, TrendingDown, Loader2, Brain, Sparkles, ArrowRight, Users, BarChart3, MapPin, Globe, CheckCircle, XCircle } from 'lucide-react'
 import { submitMahrData, supabase } from '../../lib/supabase'
 import { normalizeLocation, COUNTRIES } from '../../lib/locationNormalizer'
+import StatsSection from '../components/StatsSection'
 
 export default function ComparePage() {
   const [step, setStep] = useState<'form' | 'loading' | 'result'>('form')
@@ -307,7 +308,9 @@ export default function ComparePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        
+        <div className="mb-8">
+          <StatsSection summaryOnly />
+        </div>
         <AnimatePresence mode="wait">
           {step === 'form' && (
             <motion.div

@@ -46,7 +46,7 @@ export default function InsightsPage() {
               Explore the full statistical breakdown, trends, and analytics from the mahr.fyi community. Use this dashboard to dive deep into the data and discover patterns across cultures, professions, and time.
             </p>
           </div>
-          <StatsSection />
+          <StatsSection hideHeader={true} />
           <div className="mt-12 flex justify-center">
             <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg transition-all text-lg">
               <ArrowLeft className="w-5 h-5" />

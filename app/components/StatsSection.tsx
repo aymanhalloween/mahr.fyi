@@ -55,9 +55,10 @@ interface DashboardStats {
 
 interface StatsSectionProps {
   summaryOnly?: boolean
+  hideHeader?: boolean
 }
 
-const StatsSection = ({ summaryOnly = false }: StatsSectionProps) => {
+const StatsSection = ({ summaryOnly = false, hideHeader = false }: StatsSectionProps) => {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -100,19 +101,20 @@ const StatsSection = ({ summaryOnly = false }: StatsSectionProps) => {
           : values[Math.floor(values.length / 2)]
         : 0
 
-      // Count unique countries (by country_code or fallback to location)
-      let uniqueCountries = new Set(
+      // Count unique countries (simplified to avoid async issues and 400 errors)
+      // Use the existing location data without normalization
+      const uniqueCountries = new Set(
         submissions
-          .map(s => s.country_code)
-          .filter(c => c)
-      ).size;
-      if (uniqueCountries === 0) {
-        uniqueCountries = new Set(
-          submissions
-            .map(s => s.location)
-            .filter(l => l)
-        ).size;
-      }
+          .map(s => s.location)
+          .filter(loc => loc && loc.trim())
+      ).size
+      
+      // Debug logging
+      console.log('Country counting debug (simplified):', {
+        totalSubmissions: submissions.length,
+        locations: Array.from(new Set(submissions.map(s => s.location).filter(loc => loc && loc.trim()))),
+        uniqueCountries
+      });
 
       // Calculate cash percentage
       const cashSubmissions = submissions.filter(s => s.asset_type === 'cash').length
@@ -375,8 +377,8 @@ const StatsSection = ({ summaryOnly = false }: StatsSectionProps) => {
 
   // Summary stats bar for landing page
   if (summaryOnly) {
-    // Filter out the Countries stat for the hero page
-    const heroStats = mainStats.filter(stat => stat.label !== 'Countries')
+    // Include all stats for the summary view
+    const heroStats = mainStats
     
     return (
       <div className="card p-4 mb-6">
@@ -406,26 +408,27 @@ const StatsSection = ({ summaryOnly = false }: StatsSectionProps) => {
   return (
     <div className="space-y-12" id="insights-section">
       {/* Header */}
-      <motion.div 
-        className="text-center"
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-        viewport={{ once: true }}
-      >
-        <h2 className="text-3xl font-bold text-stone-900 mb-3">
-          Global Insights
-        </h2>
-        <p className="text-lg text-stone-600 max-w-2xl mx-auto">
-          Real data from real people, building transparency worldwide.
-        </p>
-        {lastUpdated && (
-          <p className="text-sm text-stone-500 mt-2">
-            Last updated: {lastUpdated.toLocaleDateString()} at {lastUpdated.toLocaleTimeString()}
+      {(!summaryOnly && !hideHeader) && (
+        <motion.div 
+          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-3xl font-bold text-stone-900 mb-3">
+            Global Insights
+          </h2>
+          <p className="text-lg text-stone-600 max-w-2xl mx-auto">
+            Real data from real people, building transparency worldwide.
           </p>
-        )}
-      </motion.div>
-
+          {lastUpdated && (
+            <p className="text-sm text-stone-500 mt-2">
+              Last updated: {lastUpdated.toLocaleDateString()} at {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
+        </motion.div>
+      )}
       {/* Main Stats Grid */}
       <motion.div 
         className="grid grid-cols-2 lg:grid-cols-4 gap-4"
