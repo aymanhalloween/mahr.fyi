@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, DollarSign, MapPin, User, Calendar, Shield, TrendingUp, Home, CheckCircle, AlertCircle, XCircle } from 'lucide-react'
-import { submitMahrData } from '../../lib/supabase'
+import { submitMahrData, supabase } from '../../lib/supabase'
 import { COUNTRIES } from '../../lib/locationNormalizer'
 import { normalizeLocation } from '../../lib/locationNormalizer'
 
@@ -123,23 +123,25 @@ const SubmissionForm = () => {
     setIsSubmitting(true)
     setSubmitStatus('idle')
     setCountryTouched(true)
-    // Fuzzy validation with abbreviation support
+    
+    // Enhanced country validation with better error handling
     let input = formData.location || ''
     const abbrKey = input.trim().toLowerCase()
     if (COUNTRY_ABBREVIATIONS[abbrKey]) {
       input = COUNTRY_ABBREVIATIONS[abbrKey]
       updateFormData('location', input)
     }
-    const norm = await normalizeLocation(input)
-    if (!norm.canonical) {
-      setCountryValid(false)
-      setIsSubmitting(false)
-      setSubmitStatus('error')
-      alert('Please enter a valid country from the list.')
-      return
-    }
     
     try {
+      const norm = await normalizeLocation(input)
+      if (!norm.canonical) {
+        setCountryValid(false)
+        setIsSubmitting(false)
+        setSubmitStatus('error')
+        alert('Please enter a valid country from the list.')
+        return
+      }
+      
       // Transform data for Supabase
       const submissionData = {
         asset_type: formData.asset_type,
@@ -148,7 +150,7 @@ const SubmissionForm = () => {
         asset_description: formData.asset_type !== 'cash' ? formData.asset_description : null,
         estimated_value: formData.asset_type !== 'cash' ? parseFloat(formData.estimated_value) || null : null,
         estimated_value_currency: formData.asset_type !== 'cash' ? formData.estimated_value_currency : null,
-        location: formData.location,
+        location: norm.canonical, // Use the normalized location
         cultural_background: formData.cultural_background || null,
         profession: formData.profession || null,
         marriage_year: parseInt(formData.marriage_year) || null,
@@ -180,8 +182,12 @@ const SubmissionForm = () => {
             negotiated: false
           })
           setSubmitStatus('idle')
+          setCountryValid(null)
+          setCountryTouched(false)
+          setCountrySuggestions([])
         }, 3000)
       } else {
+        console.error('Submission failed:', result.error)
         setSubmitStatus('error')
       }
     } catch (error) {
