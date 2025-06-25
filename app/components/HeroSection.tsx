@@ -105,6 +105,19 @@ const HeroSection = () => {
             <BarChart3 className="w-4 h-4" />
             <span>View Insights</span>
           </motion.button>
+
+          {/* New Compare Your Mahr button */}
+          <motion.a
+            href="/compare"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-500 text-white rounded-full font-medium hover:from-blue-700 hover:to-purple-600 transition-colors duration-200 shadow-md"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>Compare Your Mahr</span>
+            <ArrowRight className="w-4 h-4" />
+          </motion.a>
         </motion.div>
 
         {/* Trust indicators - much more subtle */}

@@ -1,15 +1,44 @@
 import { createClient } from '@supabase/supabase-js'
+import { normalizeLocation } from './locationNormalizer'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase environment variables not found. Some features may not work.')
+  console.log('Missing:', { 
+    url: !supabaseUrl ? 'NEXT_PUBLIC_SUPABASE_URL' : null,
+    key: !supabaseAnonKey ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY' : null
+  })
 }
 
 export const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null
+
+// Test connection function
+export async function testSupabaseConnection() {
+  if (!supabase) {
+    return { success: false, error: 'Supabase client not initialized' }
+  }
+  
+  try {
+    // Try to access the submissions table
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('count', { count: 'exact', head: true })
+    
+    if (error) {
+      console.error('Supabase connection test failed:', error)
+      return { success: false, error: error.message }
+    }
+    
+    return { success: true, message: 'Connection successful' }
+  } catch (err) {
+    console.error('Supabase connection test error:', err)
+    return { success: false, error: 'Connection failed' }
+  }
+}
 
 // Database types
 export interface SubmissionData {
@@ -40,14 +69,20 @@ export async function submitMahrData(data: Omit<SubmissionData, 'id' | 'created_
       throw new Error('Supabase client is not initialized. Please check your environment variables.')
     }
 
-    // Extract country code from location (basic implementation)
-    const countryCode = extractCountryCode(data.location)
-    const region = getRegionFromLocation(data.location)
+    // Normalize location
+    const norm = await normalizeLocation(data.location || '')
+
+    // Extract country code from canonical location (fallback to old method if needed)
+    const countryCode = extractCountryCode(norm.canonical) || extractCountryCode(data.location)
+    const region = getRegionFromLocation(norm.canonical) || getRegionFromLocation(data.location)
     
     const { data: result, error } = await supabase
       .from('submissions')
       .insert([{
         ...data,
+        location: norm.canonical,
+        canonical_location: norm.canonical,
+        latlng: norm.latlng,
         country_code: countryCode,
         region: region
       }])

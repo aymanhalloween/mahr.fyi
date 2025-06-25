@@ -17,7 +17,7 @@ import {
 import HeroSection from './components/HeroSection'
 import SubmissionForm from './components/SubmissionForm'
 import StatsSection from './components/StatsSection'
-import MapVisualization from './components/MapVisualization'
+import dynamic from 'next/dynamic'
 import EducationalSection from './components/EducationalSection'
 import CommunityReflections from './components/CommunityReflections'
 
@@ -35,6 +35,8 @@ const staggerContainer = {
     }
   }
 }
+
+const MapVisualization = dynamic(() => import('./components/MapVisualization'), { ssr: false })
 
 export default function HomePage() {
   return (
@@ -55,14 +57,6 @@ export default function HomePage() {
             >
               mahr.fyi
             </motion.div>
-            <motion.button 
-              className="px-4 py-2 text-sm font-medium text-stone-700 bg-stone-100 rounded-full hover:bg-stone-200 transition-colors duration-150"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            >
-              View Data
-            </motion.button>
           </div>
         </div>
       </motion.nav>
