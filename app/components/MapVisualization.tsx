@@ -6,41 +6,10 @@ import { MapPin } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
-import { normalizeLocation } from '../../lib/locationNormalizer'
-
-// Simple geocode lookup for demo (expand as needed)
-const GEO_LOOKUP: Record<string, [number, number]> = {
-  'United States': [37.0902, -95.7129],
-  'California, United States': [36.7783, -119.4179],
-  'New York, United States': [40.7128, -74.0060],
-  'United Kingdom': [55.3781, -3.4360],
-  'London, United Kingdom': [51.5074, -0.1278],
-  'Pakistan': [30.3753, 69.3451],
-  'India': [20.5937, 78.9629],
-  'UAE': [23.4241, 53.8478],
-  'Dubai, UAE': [25.2048, 55.2708],
-  'Canada': [56.1304, -106.3468],
-  'Australia': [-25.2744, 133.7751],
-  'Bangladesh': [23.685, 90.3563],
-  'Nigeria': [9.082, 8.6753],
-  'Egypt': [26.8206, 30.8025],
-  'Lebanon': [33.8547, 35.8623],
-  'Jordan': [30.5852, 36.2384],
-  'Turkey': [38.9637, 35.2433],
-  'Malaysia': [4.2105, 101.9758],
-  'Indonesia': [-0.7893, 113.9213],
-  'Qatar': [25.3548, 51.1839],
-  'Kuwait': [29.3117, 47.4818],
-  'Bahrain': [25.9304, 50.6378],
-  'Oman': [21.4735, 55.9754],
-  'France': [46.6034, 1.8883],
-  'Germany': [51.1657, 10.4515],
-  'Netherlands': [52.1326, 5.2913],
-  'Unknown': [20, 0],
-}
+import { normalizeLocation, COUNTRY_COORDINATES } from '../../lib/locationNormalizer'
 
 function getLatLng(location: string): [number, number] {
-  return GEO_LOOKUP[location] || [20, 0] // fallback: center of world
+  return COUNTRY_COORDINATES[location] || [20, 0] // fallback: center of world
 }
 
 function formatCurrency(amount: number) {

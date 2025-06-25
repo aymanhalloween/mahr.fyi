@@ -21,6 +21,21 @@ async function checkDatabase() {
     console.log(`\nTotal submissions: ${count}`);
     
     if (data && data.length > 0) {
+      // Get unique locations and their counts
+      const locationCounts = {};
+      data.forEach(submission => {
+        const location = submission.location;
+        locationCounts[location] = (locationCounts[location] || 0) + 1;
+      });
+      
+      console.log('\nUnique locations and their counts:');
+      Object.entries(locationCounts)
+        .sort(([,a], [,b]) => b - a)
+        .forEach(([location, count]) => {
+          console.log(`${location}: ${count} submissions`);
+        });
+      
+      // Show sample data
       console.log('\nSample data:');
       console.log(JSON.stringify(data.slice(0, 3), null, 2));
       

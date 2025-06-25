@@ -309,15 +309,18 @@ const SubmissionForm = () => {
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-2">
                     <MapPin className="inline w-4 h-4 mr-1" />
-                    Location (Country/Region)
+                    Country Only
                   </label>
                   <input 
                     type="text"
-                    placeholder="e.g., UAE, Pakistan, UK"
+                    placeholder="e.g., United States, Pakistan, UAE (country names only)"
                     className="input-field"
                     value={formData.location}
                     onChange={(e) => updateFormData('location', e.target.value)}
                   />
+                  <p className="text-xs text-stone-500 mt-1">
+                    Please enter only country names (no cities or regions)
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-2">

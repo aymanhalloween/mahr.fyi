@@ -255,16 +255,19 @@ export default function ComparePage() {
                   transition={{ delay: 0.4 }}
                 >
                   <label className="block text-sm font-medium text-stone-700 mb-2">
-                    📍 Location
+                    📍 Country Only
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g., UAE, Pakistan, USA"
+                    placeholder="e.g., United States, Pakistan, UAE (country names only)"
                     className="w-full px-4 py-3 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
                     required
                   />
+                  <p className="text-xs text-stone-500 mt-1">
+                    Please enter only country names (no cities or regions)
+                  </p>
                 </motion.div>
 
                 <motion.div
