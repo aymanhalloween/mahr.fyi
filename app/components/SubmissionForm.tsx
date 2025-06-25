@@ -57,6 +57,33 @@ const SubmissionForm = () => {
 
   const currencies = ['USD', 'AED', 'SAR', 'PKR', 'INR', 'GBP', 'EUR', 'CAD', 'AUD']
 
+  // Helper functions for number formatting
+  const formatNumberInput = (value: string): string => {
+    // Remove any non-numeric characters except commas and decimals
+    const cleaned = value.replace(/[^0-9.,]/g, '')
+    // Remove multiple commas/decimals
+    const parts = cleaned.split('.')
+    const integerPart = parts[0].replace(/,/g, '')
+    const decimalPart = parts.length > 1 ? '.' + parts[1] : ''
+    
+    // Add commas to integer part
+    const formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return formatted + decimalPart
+  }
+
+  const parseNumberInput = (value: string): number => {
+    // Remove commas, dollar signs, and other non-numeric characters except decimals
+    const cleaned = value.replace(/[$,]/g, '').replace(/[^0-9.]/g, '')
+    return parseFloat(cleaned) || 0
+  }
+
+  const handleAmountChange = (field: string, value: string) => {
+    // Allow user to type $ at the beginning, then format the number
+    const withoutDollar = value.replace(/^\$/, '')
+    const formatted = formatNumberInput(withoutDollar)
+    updateFormData(field, formatted)
+  }
+
   // Add a mapping for common abbreviations to canonical country names
   const COUNTRY_ABBREVIATIONS: Record<string, string> = {
     'usa': 'United States',
@@ -154,7 +181,7 @@ const SubmissionForm = () => {
         negotiated: formData.negotiated
       }
       if (formData.asset_type === 'cash') {
-        submissionData.cash_amount = formData.cash_amount ? parseFloat(formData.cash_amount) : null
+        submissionData.cash_amount = formData.cash_amount ? parseNumberInput(formData.cash_amount) : null
         submissionData.cash_currency = sanitize(formData.cash_currency)
         submissionData.asset_description = null
         submissionData.estimated_value = null
@@ -163,7 +190,7 @@ const SubmissionForm = () => {
         submissionData.cash_amount = null
         submissionData.cash_currency = null
         submissionData.asset_description = sanitize(formData.asset_description)
-        submissionData.estimated_value = formData.estimated_value ? parseFloat(formData.estimated_value) : null
+        submissionData.estimated_value = formData.estimated_value ? parseNumberInput(formData.estimated_value) : null
         submissionData.estimated_value_currency = sanitize(formData.estimated_value_currency)
       }
       // Debug: log payload
@@ -321,11 +348,11 @@ const SubmissionForm = () => {
                       </label>
                       <div className="flex space-x-3">
                         <input 
-                          type="number"
-                          placeholder="e.g., 50000"
+                          type="text"
+                          placeholder="50,000 or $50,000"
                           className="input-field flex-1"
                           value={formData.cash_amount}
-                          onChange={(e) => updateFormData('cash_amount', e.target.value)}
+                          onChange={(e) => handleAmountChange('cash_amount', e.target.value)}
                         />
                         <select 
                           className="input-field w-24"
@@ -359,11 +386,11 @@ const SubmissionForm = () => {
                       </label>
                       <div className="flex space-x-3">
                         <input 
-                          type="number"
-                          placeholder="e.g., 25000"
+                          type="text"
+                          placeholder="25,000 or $25,000"
                           className="input-field flex-1"
                           value={formData.estimated_value}
-                          onChange={(e) => updateFormData('estimated_value', e.target.value)}
+                          onChange={(e) => handleAmountChange('estimated_value', e.target.value)}
                         />
                         <select 
                           className="input-field w-24"

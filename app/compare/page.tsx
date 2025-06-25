@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { DollarSign, Zap, TrendingUp, TrendingDown, Loader2, Brain, Sparkles, ArrowRight, Users, BarChart3, MapPin, Globe } from 'lucide-react'
+import { DollarSign, Zap, TrendingUp, TrendingDown, Loader2, Brain, Sparkles, ArrowRight, Users, BarChart3, MapPin, Globe, CheckCircle, XCircle } from 'lucide-react'
 import { submitMahrData, supabase } from '../../lib/supabase'
-import { normalizeLocation } from '../../lib/locationNormalizer'
+import { normalizeLocation, COUNTRIES } from '../../lib/locationNormalizer'
 
 export default function ComparePage() {
   const [step, setStep] = useState<'form' | 'loading' | 'result'>('form')
@@ -24,12 +24,108 @@ export default function ComparePage() {
   })
   const [loading, setLoading] = useState(false)
   const [globalMedian, setGlobalMedian] = useState(0)
-
   const currencies = ['USD', 'AED', 'SAR', 'PKR', 'INR', 'GBP', 'EUR', 'CAD', 'AUD']
+
+  // Country validation states
+  const [countrySuggestions, setCountrySuggestions] = useState<string[]>([])
+  const [countryValid, setCountryValid] = useState<boolean | null>(null)
+  const [countryTouched, setCountryTouched] = useState(false)
+
+  // Add a mapping for common abbreviations to canonical country names
+  const COUNTRY_ABBREVIATIONS: Record<string, string> = {
+    'usa': 'United States',
+    'us': 'United States',
+    'america': 'United States',
+    'u.s.': 'United States',
+    'u.s.a.': 'United States',
+    'uk': 'United Kingdom',
+    'u.k.': 'United Kingdom',
+    'england': 'United Kingdom',
+    'uae': 'United Arab Emirates',
+    'emirates': 'United Arab Emirates',
+    'ksa': 'Saudi Arabia',
+    'saudi': 'Saudi Arabia',
+    // Add more as needed
+  }
+
+  // Helper functions for number formatting
+  const formatNumberInput = (value: string): string => {
+    // Remove any non-numeric characters except commas and decimals
+    const cleaned = value.replace(/[^0-9.,]/g, '')
+    // Remove multiple commas/decimals
+    const parts = cleaned.split('.')
+    const integerPart = parts[0].replace(/,/g, '')
+    const decimalPart = parts.length > 1 ? '.' + parts[1] : ''
+    
+    // Add commas to integer part
+    const formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return formatted + decimalPart
+  }
+
+  const parseNumberInput = (value: string): number => {
+    // Remove commas, dollar signs, and other non-numeric characters except decimals
+    const cleaned = value.replace(/[$,]/g, '').replace(/[^0-9.]/g, '')
+    return parseFloat(cleaned) || 0
+  }
+
+  const handleAmountChange = (value: string) => {
+    // Allow user to type $ at the beginning, then format the number
+    const withoutDollar = value.replace(/^\$/, '')
+    const formatted = formatNumberInput(withoutDollar)
+    setFormData({...formData, amount: formatted})
+  }
+
+  const handleCountryInput = (value: string) => {
+    setFormData({...formData, location: value})
+    setCountryTouched(true)
+    if (!value) {
+      setCountrySuggestions([])
+      setCountryValid(null)
+      return
+    }
+    // Check for abbreviation match
+    const abbrKey = value.trim().toLowerCase()
+    let canonical = COUNTRY_ABBREVIATIONS[abbrKey]
+    let suggestions: string[] = []
+    if (canonical) {
+      suggestions = [canonical]
+    } else {
+      suggestions = COUNTRIES.filter(c => c.toLowerCase().includes(value.toLowerCase())).slice(0, 6)
+    }
+    setCountrySuggestions(suggestions)
+    // Live validation: is it an exact match or abbreviation?
+    setCountryValid(
+      COUNTRIES.map(c => c.toLowerCase()).includes(value.toLowerCase()) ||
+      !!COUNTRY_ABBREVIATIONS[abbrKey]
+    )
+  }
+
+  const handleCountrySuggestionClick = (country: string) => {
+    setFormData({...formData, location: country})
+    setCountrySuggestions([])
+    setCountryValid(true)
+    setCountryTouched(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.amount || !formData.location) return
+
+    // Validate country before proceeding
+    setCountryTouched(true)
+    let input = formData.location || ''
+    const abbrKey = input.trim().toLowerCase()
+    if (COUNTRY_ABBREVIATIONS[abbrKey]) {
+      input = COUNTRY_ABBREVIATIONS[abbrKey]
+      setFormData({...formData, location: input})
+    }
+    
+    const norm = await normalizeLocation(input)
+    if (!norm.canonical) {
+      setCountryValid(false)
+      alert('Please enter a valid country from the list.')
+      return
+    }
 
     setStep('loading')
     setLoading(true)
@@ -38,9 +134,9 @@ export default function ComparePage() {
       // Submit to database for lead generation with enhanced data
       const submissionResult = await submitMahrData({
         asset_type: 'cash',
-        cash_amount: parseFloat(formData.amount),
+        cash_amount: parseNumberInput(formData.amount),
         cash_currency: formData.currency,
-        location: formData.location,
+        location: input,
         cultural_background: formData.cultural_background || null,
         marriage_year: formData.marriage_year ? parseInt(formData.marriage_year) : null,
         negotiated: false,
@@ -99,7 +195,7 @@ export default function ComparePage() {
         : 0
 
       // Convert to USD for comparison if needed
-      const userAmount = parseFloat(formData.amount)
+      const userAmount = parseNumberInput(formData.amount)
       let normalizedAmount = userAmount
       if (formData.currency !== 'USD') {
         const conversionRates: { [key: string]: number } = {
@@ -160,6 +256,9 @@ export default function ComparePage() {
     setStep('form')
     setFormData({ amount: '', currency: 'USD', location: '', cultural_background: '', marriage_year: '' })
     setResult(null)
+    setCountryValid(null)
+    setCountryTouched(false)
+    setCountrySuggestions([])
   }
 
   const goToMainSite = () => {
@@ -249,11 +348,11 @@ export default function ComparePage() {
                     <div className="relative flex-1">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 w-5 h-5" />
                       <input
-                        type="number"
-                        placeholder="50000"
+                        type="text"
+                        placeholder="50,000 or $50,000"
                         className="w-full pl-10 pr-4 py-3 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         value={formData.amount}
-                        onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                        onChange={(e) => handleAmountChange(e.target.value)}
                         required
                       />
                     </div>
@@ -277,16 +376,40 @@ export default function ComparePage() {
                   <label className="block text-sm font-medium text-stone-700 mb-2">
                     📍 Country Only
                   </label>
-                  <input
-                    type="text"
-                    placeholder="e.g., United States, Pakistan, UAE (country names only)"
-                    className="w-full px-4 py-3 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    value={formData.location}
-                    onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Start typing your country..."
+                      className="w-full px-4 py-3 pr-12 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      value={formData.location}
+                      onChange={(e) => handleCountryInput(e.target.value)}
+                      onBlur={() => setTimeout(() => setCountrySuggestions([]), 200)}
+                      onFocus={() => formData.location && setCountrySuggestions(COUNTRIES.filter(c => c.toLowerCase().includes(formData.location.toLowerCase())).slice(0, 6))}
+                      autoComplete="off"
+                      required
+                    />
+                    {countryTouched && countryValid === true && (
+                      <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 w-5 h-5" />
+                    )}
+                    {countryTouched && countryValid === false && (
+                      <XCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 w-5 h-5" />
+                    )}
+                    {countrySuggestions.length > 0 && (
+                      <div className="absolute z-10 bg-white border border-stone-200 rounded-lg shadow-lg w-full mt-1 max-h-40 overflow-auto">
+                        {countrySuggestions.map((country, idx) => (
+                          <div
+                            key={country}
+                            className="px-4 py-2 hover:bg-purple-50 cursor-pointer text-sm border-b border-stone-100 last:border-b-0"
+                            onMouseDown={() => handleCountrySuggestionClick(country)}
+                          >
+                            {country}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <p className="text-xs text-stone-500 mt-1">
-                    Please enter only country names (no cities or regions)
+                    Type your country name or abbreviation (e.g., USA, UK, UAE)
                   </p>
                 </motion.div>
 
