@@ -21,18 +21,36 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: 'mahr.fyi',
+    url: 'https://mahr.fyi',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'mahr.fyi - Transparent Mahr Data',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'mahr.fyi - Transparent Mahr Data',
     description: 'Transparent, dignified data on mahr practices around the world.',
-  }
+    images: ['/og-image.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  verification: {
+    google: 'your-google-verification-code', // Optional: Add if you have Google Search Console
+  },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#faf9f7',
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -55,6 +73,17 @@ export default function RootLayout({
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossOrigin=""
         />
+        
+        {/* iOS-specific meta tags for better iMessage previews */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="mahr.fyi" />
+        <meta name="format-detection" content="telephone=no" />
+        
+        {/* Additional Open Graph tags for better social sharing */}
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/png" />
       </head>
       <body className={`${inter.className} bg-gradient-warm min-h-screen text-stone-800 antialiased`}>
         {children}
