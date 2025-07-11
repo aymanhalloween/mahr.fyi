@@ -6,6 +6,7 @@ import { DollarSign, Zap, TrendingUp, TrendingDown, Loader2, Brain, Sparkles, Ar
 import { submitMahrData, supabase } from '../../lib/supabase'
 import { normalizeLocation, COUNTRIES } from '../../lib/locationNormalizer'
 import StatsSection from '../components/StatsSection'
+import { FORM_PLACEHOLDERS, YEAR_CONSTRAINTS, getMaxYear, STATISTICAL_THRESHOLDS } from '../../lib/constants'
 
 export default function ComparePage() {
   const [step, setStep] = useState<'form' | 'loading' | 'result'>('form')
@@ -207,8 +208,8 @@ export default function ComparePage() {
       }
 
       const percentageOfMedian = countryMedian > 0 ? (normalizedAmount / countryMedian) * 100 : 0
-      const lowerBound = 70 // 30% below median
-      const upperBound = 130 // 30% above median
+      const lowerBound = STATISTICAL_THRESHOLDS.LOWER_BOUND_PERCENTAGE // 30% below median
+      const upperBound = STATISTICAL_THRESHOLDS.UPPER_BOUND_PERCENTAGE // 30% above median
 
       let resultType: 'below' | 'above' | 'within'
       if (percentageOfMedian < lowerBound) {
@@ -349,7 +350,7 @@ export default function ComparePage() {
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 w-5 h-5" />
                       <input
                         type="text"
-                        placeholder="50,000 or $50,000"
+                        placeholder={FORM_PLACEHOLDERS.MAHR_AMOUNT}
                         className="w-full pl-10 pr-4 py-3 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         value={formData.amount}
                         onChange={(e) => handleAmountChange(e.target.value)}
@@ -441,8 +442,8 @@ export default function ComparePage() {
                   <input
                     type="number"
                     placeholder="e.g., 2023"
-                    min="1950"
-                    max={new Date().getFullYear() + 1}
+                    min={YEAR_CONSTRAINTS.MIN_YEAR.toString()}
+                    max={getMaxYear().toString()}
                     className="w-full px-4 py-3 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     value={formData.marriage_year}
                     onChange={(e) => setFormData({...formData, marriage_year: e.target.value})}

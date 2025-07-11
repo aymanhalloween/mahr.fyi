@@ -34,7 +34,9 @@ CREATE TABLE submissions (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
   -- Validation
-  CONSTRAINT valid_year CHECK (marriage_year >= 1950 AND marriage_year <= EXTRACT(YEAR FROM NOW()) + 1),
+  -- Note: This constraint uses the same values as defined in lib/constants.ts
+-- MIN_YEAR: 1950, MAX_YEAR_OFFSET: 1
+CONSTRAINT valid_year CHECK (marriage_year >= 1950 AND marriage_year <= EXTRACT(YEAR FROM NOW()) + 1),
   CONSTRAINT has_value CHECK (
     (asset_type = 'cash' AND cash_amount IS NOT NULL) OR 
     (asset_type != 'cash' AND estimated_value IS NOT NULL)

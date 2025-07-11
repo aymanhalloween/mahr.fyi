@@ -6,6 +6,7 @@ import { Send, DollarSign, MapPin, User, Calendar, Shield, TrendingUp, Home, Che
 import { submitMahrData, supabase } from '../../lib/supabase'
 import { COUNTRIES } from '../../lib/locationNormalizer'
 import { normalizeLocation } from '../../lib/locationNormalizer'
+import { FORM_PLACEHOLDERS, YEAR_CONSTRAINTS, getMaxYear } from '../../lib/constants'
 
 const SubmissionForm = () => {
   const [currentStep, setCurrentStep] = useState(0)
@@ -349,7 +350,7 @@ const SubmissionForm = () => {
                       <div className="flex space-x-3">
                         <input 
                           type="text"
-                          placeholder="50,000 or $50,000"
+                          placeholder={FORM_PLACEHOLDERS.CASH_AMOUNT}
                           className="input-field flex-1"
                           value={formData.cash_amount}
                           onChange={(e) => handleAmountChange('cash_amount', e.target.value)}
@@ -387,7 +388,7 @@ const SubmissionForm = () => {
                       <div className="flex space-x-3">
                         <input 
                           type="text"
-                          placeholder="25,000 or $25,000"
+                          placeholder={FORM_PLACEHOLDERS.ESTIMATED_VALUE}
                           className="input-field flex-1"
                           value={formData.estimated_value}
                           onChange={(e) => handleAmountChange('estimated_value', e.target.value)}
@@ -504,8 +505,8 @@ const SubmissionForm = () => {
                   <input 
                     type="number"
                     placeholder="e.g., 2023"
-                    min="1950"
-                    max={new Date().getFullYear() + 1}
+                    min={YEAR_CONSTRAINTS.MIN_YEAR.toString()}
+                    max={getMaxYear().toString()}
                     className="input-field"
                     value={formData.marriage_year}
                     onChange={(e) => updateFormData('marriage_year', e.target.value)}
