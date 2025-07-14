@@ -1,20 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import { normalizeLocation } from './locationNormalizer'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xeqvkvmywbvuthtssrfy.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhlcXZrdm15d2J2dXRodHNzcmZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1Mjg3OTIsImV4cCI6MjA2NTEwNDc5Mn0.32O-K-TLTzbHqHzSbI8nzG7HNYw2CSx4VjwdVWbVJmc'
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase environment variables not found. Some features may not work.')
-  console.log('Missing:', { 
-    url: !supabaseUrl ? 'NEXT_PUBLIC_SUPABASE_URL' : null,
-    key: !supabaseAnonKey ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY' : null
-  })
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  console.warn('Supabase environment variables not found. Using fallback credentials.')
 }
 
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Test connection function
 export async function testSupabaseConnection() {
