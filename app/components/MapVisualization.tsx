@@ -8,13 +8,10 @@ import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import { normalizeLocation, COUNTRY_COORDINATES } from '../../lib/locationNormalizer'
 import { createPortal } from 'react-dom'
+import { formatCurrency } from '../../lib/constants'
 
 function getLatLng(location: string): [number, number] {
   return COUNTRY_COORDINATES[location] || [20, 0] // fallback: center of world
-}
-
-function formatCurrency(amount: number) {
-  return `$${Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(amount)}`
 }
 
 interface GroupData {

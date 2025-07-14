@@ -47,9 +47,10 @@
     text-wrap: balance;
   }
   
-  .perspective-1000 {
-    perspective: 1000px;
-  }
+  /* Note: This value should be updated to use the constant from lib/constants.ts */
+.perspective-1000 {
+  perspective: 1000px;
+}
   
   .preserve-3d {
     transform-style: preserve-3d;

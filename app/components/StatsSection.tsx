@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { TrendingUp, Users, MapPin, DollarSign, RefreshCw, BarChart3 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
+import { formatCurrency, STATISTICAL_THRESHOLDS } from '../../lib/constants'
 
 interface DashboardStats {
   totalSubmissions: number
@@ -314,11 +315,7 @@ const StatsSection = ({ summaryOnly = false, hideHeader = false }: StatsSectionP
     fetchStats()
   }, [])
 
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`
-    if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`
-    return `$${amount.toLocaleString()}`
-  }
+  // formatCurrency is now imported from constants
 
   const mainStats = stats ? [
     {
