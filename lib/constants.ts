@@ -75,7 +75,6 @@ export const VALIDATION_RULES = {
   MIN_AMOUNT: 1, // Minimum valid amount
   MAX_AMOUNT: 1000000000, // Maximum valid amount (1 billion)
   MIN_YEAR: YEAR_CONSTRAINTS.MIN_YEAR,
-  MAX_YEAR: () => new Date().getFullYear() + YEAR_CONSTRAINTS.MAX_YEAR_OFFSET,
 } as const
 
 // Helper function to get current max year
