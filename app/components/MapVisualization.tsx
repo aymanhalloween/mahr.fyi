@@ -8,10 +8,13 @@ import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import { normalizeLocation, COUNTRY_COORDINATES } from '../../lib/locationNormalizer'
 import { createPortal } from 'react-dom'
-import { formatCurrency } from '../../lib/constants'
 
 function getLatLng(location: string): [number, number] {
   return COUNTRY_COORDINATES[location] || [20, 0] // fallback: center of world
+}
+
+function formatCurrency(amount: number) {
+  return `$${Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(amount)}`
 }
 
 interface GroupData {
@@ -201,6 +204,7 @@ function CountryModal({ show, onClose, country }: { show: boolean, onClose: () =
 
 const MapVisualization = () => {
   const [groups, setGroups] = useState<GroupData[]>([])
+  const [stats, setStats] = useState({countries: 0, submissions: 0, globalMedian: 0})
   const [loading, setLoading] = useState(true)
   const [selectedCountry, setSelectedCountry] = useState<GroupData | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -313,6 +317,12 @@ const MapVisualization = () => {
         })
 
         setGroups(groupData)
+        
+        // Stats
+        const uniqueLocations = new Set(normalizedSubs.map((s: any) => s.canonical_location)).size
+        const allAmounts = normalizedSubs.map((s: any) => s.cash_amount).filter(Boolean).sort((a: number, b: number) => a - b)
+        const globalMedian = allAmounts.length ? allAmounts[Math.floor(allAmounts.length / 2)] : 0
+        setStats({countries: uniqueLocations, submissions: normalizedSubs.length, globalMedian})
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -393,8 +403,6 @@ const MapVisualization = () => {
             ))}
           </MapContainer>
         </div>
-
-        {/* Bottom stats removed to keep map only */}
       </motion.div>
 
       {/* Country Detail Modal */}
