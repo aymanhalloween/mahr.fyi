@@ -201,7 +201,6 @@ function CountryModal({ show, onClose, country }: { show: boolean, onClose: () =
 
 const MapVisualization = () => {
   const [groups, setGroups] = useState<GroupData[]>([])
-  const [stats, setStats] = useState({countries: 0, submissions: 0, globalMedian: 0})
   const [loading, setLoading] = useState(true)
   const [selectedCountry, setSelectedCountry] = useState<GroupData | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -314,12 +313,6 @@ const MapVisualization = () => {
         })
 
         setGroups(groupData)
-        
-        // Stats
-        const uniqueLocations = new Set(normalizedSubs.map((s: any) => s.canonical_location)).size
-        const allAmounts = normalizedSubs.map((s: any) => s.cash_amount).filter(Boolean).sort((a: number, b: number) => a - b)
-        const globalMedian = allAmounts.length ? allAmounts[Math.floor(allAmounts.length / 2)] : 0
-        setStats({countries: uniqueLocations, submissions: normalizedSubs.length, globalMedian})
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -401,26 +394,7 @@ const MapVisualization = () => {
           </MapContainer>
         </div>
 
-        {/* Enhanced Stats Summary */}
-        <div className="p-6 border-t border-stone-200">
-          <div className="grid grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-stone-900">{stats.countries}</div>
-              <div className="text-sm text-stone-600">Countries</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-stone-900">{stats.submissions.toLocaleString()}</div>
-              <div className="text-sm text-stone-600">Total Submissions</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-stone-900">{formatCurrency(stats.globalMedian)}</div>
-              <div className="text-sm text-stone-600">Global Median</div>
-            </div>
-          </div>
-          <div className="mt-4 text-center">
-            <p className="text-xs text-stone-500">Click any marker for detailed country statistics</p>
-          </div>
-        </div>
+        {/* Bottom stats removed to keep map only */}
       </motion.div>
 
       {/* Country Detail Modal */}
