@@ -213,6 +213,7 @@ const MapVisualization = () => {
     async function fetchData() {
       setLoading(true)
       if (!supabase) {
+        console.error('Supabase client not initialized')
         setLoading(false)
         return
       }

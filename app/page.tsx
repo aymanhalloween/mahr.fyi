@@ -35,7 +35,10 @@ const staggerContainer = {
   }
 }
 
-const MapVisualization = dynamic(() => import('./components/MapVisualization'), { ssr: false })
+const MapVisualization = dynamic(() => import('./components/MapVisualization'), { 
+  ssr: false,
+  loading: () => <div className="text-center py-8">Loading map...</div>
+})
 
 export default function HomePage() {
   return (
